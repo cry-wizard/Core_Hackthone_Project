@@ -1,0 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(6, 168, 249, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 168, 249, 0.1) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+}
+
+.glow-effect {
+  box-shadow: 0 0 5px #06a8f9, 0 0 10px #06a8f9, 0 0 15px #06a8f9;
+}
