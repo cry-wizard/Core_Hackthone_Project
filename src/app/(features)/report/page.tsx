@@ -35,7 +35,7 @@ export default function ReportsPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [reports, setReports] = useState<any[]>([]);
 
-  // Fetch logs from backend
+  // Fetch logs
   useEffect(() => {
     async function fetchLogs() {
       try {
@@ -46,16 +46,14 @@ export default function ReportsPage() {
         console.error("Failed to fetch logs:", err);
       }
     }
-
     fetchLogs();
   }, []);
 
-  // Generate weekly reports dynamically
+  // Generate weekly reports
   useEffect(() => {
     if (!logs.length) return;
 
     const grouped: Record<string, Log[]> = {};
-
     logs.forEach((log) => {
       const weekStart = dayjs(log.timestamp).startOf("week").format("YYYY-MM-DD");
       if (!grouped[weekStart]) grouped[weekStart] = [];
@@ -74,7 +72,6 @@ export default function ReportsPage() {
     setReports(weeklyReports);
   }, [logs]);
 
-  // Generate summary string
   function generateSummary(logs: Log[]) {
     const ipCount: Record<string, number> = {};
     const types: Record<string, number> = {};
@@ -96,10 +93,9 @@ export default function ReportsPage() {
       .map(([type]) => type)
       .join(", ");
 
-    return `Top IPs: ${topIPs}; Top Types: ${topTypes}`;
+    return { topIPs, topTypes };
   }
 
-  // Download JSON file
   function downloadJSON(logs: Log[], weekStart: string) {
     const blob = new Blob([JSON.stringify(logs, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -110,7 +106,6 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   }
 
-  // Share JSON file
   function shareJSON(logs: Log[], weekStart: string) {
     if (navigator.share) {
       const file = new File([JSON.stringify(logs, null, 2)], `honeypot_logs_week_${weekStart}.json`, {
@@ -124,7 +119,7 @@ export default function ReportsPage() {
         })
         .catch((err) => console.error("Error sharing:", err));
     } else {
-      alert("Sharing is not supported on this browser. Please download the file instead.");
+      alert("Sharing not supported on this browser. Please download instead.");
     }
   }
 
@@ -132,114 +127,74 @@ export default function ReportsPage() {
     <div
       className={`flex h-screen flex-col bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200 ${spaceGrotesk.className}`}
     >
-      <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Reports</h2>
-          </div>
+      <main className="flex-1 overflow-y-auto p-6">
+        <h2 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Weekly Reports</h2>
 
-          {/* Reports table */}
-          <div className="mt-8 space-y-8">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Generated Reports
-              </h3>
-              <div className="mt-4 flow-root">
-                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                  <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div className="overflow-hidden rounded-lg border border-gray-200/20 dark:border-white/10">
-                      <table className="min-w-full divide-y divide-gray-200/20 dark:divide-white/10">
-                        <thead className="bg-gray-500/5 dark:bg-white/5">
-                          <tr>
-                            <th className="w-1/4 px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                              Week Start
-                            </th>
-                            <th className="w-1/4 px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                              Total Attacks
-                            </th>
-                            <th className="w-2/4 px-6 py-3 text-left text-sm font-medium text-gray-500 dark:text-gray-400">
-                              Summary
-                            </th>
-                            <th className="relative py-3 pl-3 pr-4 sm:pr-6">
-                              <span className="sr-only">Actions</span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200/10 dark:divide-white/10 bg-background-light dark:bg-background-dark">
-                          {reports.map((report, i) => (
-                            <tr key={i}>
-                              <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                                {dayjs(report.weekStart).format("MMMM D, YYYY")}
-                              </td>
-                              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                {report.totalAttacks}
-                              </td>
-                              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                {report.summary}
-                              </td>
-                              <td className="flex items-center justify-end gap-2 whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                                <button
-                                  onClick={() => downloadJSON(report.logs, report.weekStart)}
-                                  className="inline-flex items-center gap-2 rounded-lg bg-[#06a8f9] px-7 py-1.5 text-sm font-semibold text-white hover:bg-primary/20"
-                                >
-                                  <Image alt="download" src={downloadIcon} width={15} height={15} />
-                                  JSON
-                                </button>
-                                <button
-                                  onClick={() => shareJSON(report.logs, report.weekStart)}
-                                  className="inline-flex items-center gap-2 rounded-lg bg-[#0ccf5f] px-7 py-1.5 text-sm font-semibold text-white hover:bg-green-600"
-                                >
-                                  <Image alt="share" src={shareIcon} width={15} height={15} />
-                                  Share
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {reports.length === 0 && (
+            <div className="col-span-full text-center text-gray-500 dark:text-gray-400">No reports generated yet.</div>
+          )}
+
+          {reports.map((report, i) => (
+            <div
+              key={i}
+              className="bg-[#101828] dark:bg-[#1A1F2B] rounded-lg p-6 shadow-lg hover:shadow-[#06A8F9]/50 transition-all border border-gray-700 dark:border-white/10"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-xl font-semibold text-white">
+                    Week of {dayjs(report.weekStart).format("MMMM D, YYYY")}
+                  </h3>
+                  <p className="text-gray-400 mt-1 text-sm">
+                    Total Attacks: <span className="font-bold text-red-400">{report.totalAttacks}</span>
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadJSON(report.logs, report.weekStart)}
+                    className="p-2 bg-[#06a8f9] rounded-lg hover:bg-[#0591d2] transition"
+                  >
+                    <Image src={downloadIcon} alt="download" width={18} height={18} />
+                  </button>
+                  <button
+                    onClick={() => shareJSON(report.logs, report.weekStart)}
+                    className="p-2 bg-[#0ccf5f] rounded-lg hover:bg-[#09b84d] transition"
+                  >
+                    <Image src={shareIcon} alt="share" width={18} height={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div>
+                  <p className="text-gray-300 text-sm font-medium mb-1">Top IPs:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {report.summary.topIPs.split(", ").map((ip: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-[#06A8F9]/20 rounded-full text-xs text-blue-200 font-mono"
+                      >
+                        {ip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-gray-300 text-sm font-medium mb-1">Top Attack Types:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {report.summary.topTypes.split(", ").map((type: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 bg-[#0ccf5f]/20 rounded-full text-xs text-green-200 font-mono"
+                      >
+                        {type}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Report Settings */}
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Report Settings
-              </h3>
-              <div className="mt-4 rounded-lg border border-gray-200/20 dark:border-white/10 bg-background-light dark:bg-background-dark p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      id="weekly-reports"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-primary focus:ring-2 focus:ring-primary dark:focus:ring-offset-background-dark"
-                    />
-                    <label
-                      htmlFor="weekly-reports"
-                      className="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Auto-generate Weekly Reports
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      id="monthly-reports"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-primary focus:ring-2 focus:ring-primary dark:focus:ring-offset-background-dark"
-                    />
-                    <label
-                      htmlFor="monthly-reports"
-                      className="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Auto-generate Monthly Reports
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </main>
     </div>

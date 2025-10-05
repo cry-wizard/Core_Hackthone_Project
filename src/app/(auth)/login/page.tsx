@@ -1,65 +1,102 @@
-import Head from "next/head";
-import './style.css'
+"use client";
 
-export default function login() {
+import Head from "next/head";
+import { SignIn } from "@clerk/nextjs";
+import "./style.css";
+
+export default function LoginPage() {
   return (
     <>
       <Head>
         <title>HaaS Login</title>
       </Head>
 
-      <div className="font-display bg-background-light dark:bg-background-dark text-stone-900 dark:text-stone-100 min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 cyber-grid"></div>
-        <div className="absolute inset-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm"></div>
+      <div className="font-display bg-gradient-to-b from-[#0f1c23] to-[#061d2d] text-stone-100 min-h-screen flex items-center justify-center relative overflow-hidden">
+        {/* Glowing grid background */}
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(6,168,249,0.2) 1px, transparent 1px), radial-gradient(circle, rgba(6,168,249,0.2) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        ></div>
 
-        <div className="relative z-10 flex w-full max-w-md flex-col gap-8 p-8">
+        {/* Login Card */}
+        <div className="relative z-10 w-full max-w-md p-8 rounded-2xl bg-white/10 dark:bg-black/30 shadow-2xl shadow-[#06a8f9]/20 backdrop-blur-xl border border-[#06a8f9]/30 flex flex-col gap-6">
+          {/* Branding */}
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center gap-3 text-primary">
-              <svg className="h-10 w-10" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                <path d="M24 4L6 14V34L24 44L42 34V14L24 4Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
-                <path d="M15 19L24 24L33 19" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
-                <path d="M15 29L24 34L33 29" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
-                <path d="M24 4V44" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4"/>
+            <div className="flex items-center gap-3 text-[#06a8f9]">
+              <svg
+                className="h-10 w-10"
+                fill="none"
+                viewBox="0 0 48 48"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M24 4L6 14V34L24 44L42 34V14L24 4Z"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="4"
+                />
+                <path
+                  d="M15 19L24 24L33 19"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="4"
+                />
+                <path
+                  d="M15 29L24 34L33 29"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="4"
+                />
+                <path
+                  d="M24 4V44"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="4"
+                />
               </svg>
-              <h1 className="text-3xl font-bold text-stone-900 dark:text-stone-100">HaaS</h1>
+              <h1 className="text-3xl font-bold text-white">HaaS</h1>
             </div>
-            <p className="text-stone-600 dark:text-stone-400">
+            <p className="text-stone-300">
               Welcome back. Securely access your honeypots.
             </p>
           </div>
 
-          <div className="flex w-full rounded-lg bg-background-light/50 dark:bg-background-dark/50 shadow-2xl shadow-primary/10 backdrop-blur-md">
-            <div className="w-full rounded-lg border border-primary/20 p-8">
-              <form className="flex flex-col gap-6">
-                <div className="flex flex-col gap-4">
-                  <input
-                    type="text"
-                    id="username"
-                    placeholder="Username"
-                    className="w-full rounded-lg border-2 border-[#06a8f9] bg-background-light dark:bg-background-dark px-4 py-3 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-500 focus:border-primary focus:outline-none focus:ring-0 transition-colors duration-300"
-                  />
-                  <input
-                    type="password"
-                    id="password"
-                    placeholder="Password"
-                    className="w-full rounded-lg border-2 border-[#06a8f9] bg-background-light dark:bg-background-dark px-4 py-3 text-base text-stone-900 dark:text-stone-100 placeholder:text-stone-500 focus:border-primary focus:outline-none focus:ring-0 transition-colors duration-300"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-[#06a8f9] py-3 text-base font-bold text-white transition-transform duration-300 hover:scale-105"
-                >
-                  Sign In
-                </button>
-                <p className="text-center text-sm text-stone-600 dark:text-stone-400">
-                  Don&apos;t have an account?{" "}
-                  <a className="font-semibold text-[#06a8f9] hover:underline" href="#">
-                    Sign up
-                  </a>
-                </p>
-              </form>
-            </div>
+          {/* Clerk SignIn Component */}
+          <div className="w-full">
+            <SignIn
+              appearance={{
+                baseTheme: "dark",
+                elements: {
+                  card: "bg-white/5 backdrop-blur-md rounded-xl shadow-lg border border-[#06a8f9]/30",
+                  formButtonPrimary:
+                    "bg-[#06a8f9] hover:bg-[#0C4663] text-white font-bold py-3 px-6 rounded-lg transition-transform hover:scale-105",
+                  socialButtons: "rounded-lg border border-[#06a8f9]/50",
+                  formFieldInput: "bg-white/10 text-white placeholder:text-stone-400 border border-[#06a8f9]/30 rounded-lg px-4 py-2 focus:ring-1 focus:ring-[#06a8f9]",
+                },
+              }}
+              routing="hash"
+              signUpUrl="/signup"
+            />
           </div>
+
+          {/* Footer link */}
+          <p className="text-center text-stone-300 mt-2">
+            Don’t have an account?{" "}
+            <a
+              className="text-[#06a8f9] font-semibold hover:underline"
+              href="/signUp"
+            >
+              Sign Up
+            </a>
+          </p>
         </div>
       </div>
     </>

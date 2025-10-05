@@ -1,9 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Space_Grotesk } from "next/font/google";
 import lock from "../../../../public/lock.png";
 import Mobile from "../../../../public/password.png";
-
 import Image from "next/image";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"] });
@@ -15,6 +15,15 @@ const buttonBaseClasses =
   "inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-background-dark";
 
 export default function SettingsPage() {
+  const [honeypots, setHoneypots] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [modal, setModal] = useState({
+    type: "", // "deploy" | "confirm-remove" | "success" | "error"
+    message: "",
+    data: null,
+  });
+
   const profileFields = [
     { id: "name", label: "Name", type: "text", defaultValue: "Alex Morgan" },
     {
@@ -29,12 +38,6 @@ export default function SettingsPage() {
       type: "text",
       defaultValue: "CyberCorp Inc.",
     },
-  ];
-
-  const honeypots = [
-    { name: "SSH-01 (Ubuntu 20.04)", date: "2024-07-10", ip: "192.168.1.15" },
-    { name: "HTTP-WebServ (Apache)", date: "2024-06-25", ip: "192.168.1.18" },
-    { name: "SQL-DataStore", date: "2024-05-12", ip: "192.168.1.22" },
   ];
 
   const notifications = [
@@ -55,6 +58,66 @@ export default function SettingsPage() {
     },
   ];
 
+  // Fetch all honeypot containers
+  const fetchHoneypots = async () => {
+    try {
+      const res = await fetch("/api/docker");
+      const text = await res.text();
+      const data = JSON.parse(text); // <-- safer parse
+setHoneypots(
+  data.containers.map((c) => ({
+    id: c.id,
+    name: c.names[0],
+    ip: "N/A",
+    ports: c.Ports || [],
+    date: new Date().toLocaleString(),
+    hostPort: c.Ports && c.Ports.length > 0 ? c.Ports[0].PublicPort || "N/A" : "N/A",
+    internalPort: c.Ports && c.Ports.length > 0 ? c.Ports[0].PrivatePort || "N/A" : "N/A",
+    type: c.labels?.honeypot_type || "unknown",
+  }))
+);
+
+    } catch (err) {
+      console.error("Failed to fetch honeypots:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchHoneypots();
+  }, []);
+
+  // Open deploy modal
+  const openDeployModal = () => setModal({ type: "deploy", message: "", data: null });
+
+  // Deploy honeypot
+  const deployHoneypot = async (type: string) => {
+    let hostPort = prompt("Enter host port (leave blank for random):");
+    if (hostPort && isNaN(parseInt(hostPort))) return alert("Port must be a number");
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/docker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, hostPort: hostPort || undefined }),
+      });
+      const data = await res.json();
+
+      setModal({ type: "success", message: `Honeypot deployed: ${data.name} on port ${data.hostPort}`, data: null });
+      fetchHoneypots();
+    } catch (err) {
+      console.error(err);
+      setModal({ type: "error", message: "Failed to deploy honeypot", data: null });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Decommission honeypot
+  const decommission = async (id: string) => {
+    setModal({ type: "confirm-remove", message: "Are you sure you want to remove this honeypot?", data: id });
+  };
+
   return (
     <div
       className={`flex flex-col bg-background-dark font-display text-gray-200 ${spaceGrotesk.className}`}
@@ -68,9 +131,7 @@ export default function SettingsPage() {
             <div className="lg:col-span-2 space-y-8">
               {/* Profile Settings */}
               <div className="rounded-xl border border-white/10 bg-background-dark/50 p-6 shadow-lg shadow-black/20">
-                <h3 className="text-xl font-bold text-[#39FF14]">
-                  Profile Settings
-                </h3>
+                <h3 className="text-xl font-bold text-[#39FF14]">Profile Settings</h3>
                 <div className="mt-6 space-y-4">
                   {profileFields.map((field) => (
                     <div key={field.id}>
@@ -101,35 +162,34 @@ export default function SettingsPage() {
               {/* Honeypot Management */}
               <div className="rounded-xl border border-white/10 bg-background-dark/50 p-6 shadow-lg shadow-black/20">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-[#39FF14]">
-                    Honeypot Management
-                  </h3>
+                  <h3 className="text-xl font-bold text-[#39FF14]">Honeypot Management</h3>
                   <button
+                    disabled={loading}
+                    onClick={openDeployModal}
                     className={`${buttonBaseClasses} bg-[#39FF14] text-black hover:bg-[#37ff1495] focus:ring-neon-green`}
                   >
-                    <span className="material-symbols-outlined -ml-1 mr-2 text-base">
-                      +
-                    </span>
+                    <span className="material-symbols-outlined -ml-1 mr-2 text-base">+</span>
                     Deploy New Honeypot
                   </button>
                 </div>
                 <div className="mt-6 flow-root">
                   <ul className="divide-y divide-white/10" role="list">
                     {honeypots.map((hp, i) => (
-                      <li
-                        key={i}
-                        className="flex items-center justify-between py-4"
-                      >
+                      <li key={i} className="flex items-center justify-between py-4 animate-fade-in">
                         <div className="flex items-center gap-4">
                           <div className="h-2 w-2 rounded-full bg-neon-green shadow-[0_0_10px_theme(colors.neon-green)]"></div>
                           <div>
                             <p className="font-medium text-white">{hp.name}</p>
                             <p className="text-sm text-gray-400">
-                              Deployed: {hp.date} | IP: {hp.ip}
+                              Type: {hp.type} | Host Port: {hp.hostPort} | Deployed: {hp.date}
                             </p>
                           </div>
                         </div>
-                        <button className="rounded-lg bg-[#3F1626] px-3 py-1.5 text-sm font-semibold text-[#F80132] hover:bg-[#3f1626b3]">
+                        <button
+                          disabled={loading}
+                          onClick={() => decommission(hp.id)}
+                          className="rounded-lg bg-[#3F1626] px-3 py-1.5 text-sm font-semibold text-[#F80132] hover:bg-[#3f1626b3]"
+                        >
                           Decommission
                         </button>
                       </li>
@@ -143,19 +203,13 @@ export default function SettingsPage() {
             <div className="space-y-8">
               {/* Notification Settings */}
               <div className="rounded-xl border border-white/10 bg-background-dark/50 p-6 shadow-lg shadow-black/20">
-                <h3 className="text-xl font-bold text-[#8622C7]">
-                  Notification Settings
-                </h3>
+                <h3 className="text-xl font-bold text-[#8622C7]">Notification Settings</h3>
                 <div className="mt-6 space-y-4">
                   {notifications.map((notif, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <span className="flex flex-grow flex-col">
-                        <span className="text-sm font-medium text-gray-200">
-                          {notif.title}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {notif.subtitle}
-                        </span>
+                        <span className="text-sm font-medium text-gray-200">{notif.title}</span>
+                        <span className="text-xs text-gray-400">{notif.subtitle}</span>
                       </span>
                       <button
                         aria-checked={notif.checked}
@@ -165,9 +219,7 @@ export default function SettingsPage() {
                       >
                         <span
                           className={`form-switch-translate ${
-                            notif.checked
-                              ? "translate-x-5 bg-neon-purple"
-                              : "translate-x-0 bg-white"
+                            notif.checked ? "translate-x-5 bg-neon-purple" : "translate-x-0 bg-white"
                           }`}
                         />
                       </button>
@@ -178,24 +230,19 @@ export default function SettingsPage() {
 
               {/* Security Settings */}
               <div className="rounded-xl border border-white/10 bg-background-dark/50 p-6 shadow-lg shadow-black/20">
-                <h3 className="text-xl font-bold text-[#8622C7]">
-                  Security Settings
-                </h3>
+                <h3 className="text-xl font-bold text-[#8622C7]">Security Settings</h3>
                 <div className="mt-6 space-y-4">
-                  {/* Reset Password */}
                   <button
-                    className={`${buttonBaseClasses} w-full border border-neon-blue/50 bg-[#0D2F39] text-[#02C5DF] 
-    hover:bg-[#02C5DF]/10 focus:ring-[#02C5DF] flex items-center gap-2 transition-colors duration-200`}
+                    className={`${buttonBaseClasses} w-full border border-neon-blue/50 bg-[#0D2F39] text-[#02C5DF] hover:bg-[#02C5DF]/10 focus:ring-[#02C5DF] flex items-center gap-2 transition-colors duration-200`}
                   >
                     <Image src={lock} alt="Lock icon" width={18} height={18} />
                     Reset Password
                   </button>
 
-                  {/* 2FA */}
                   <button
                     className={`${buttonBaseClasses} w-full border hover:bg-[#02C5DF]/10 border-neon-blue/50 bg-[#0D2F39] text-[#02C5DF] hover:bg-neon-blue/20 focus:ring-neon-blue flex items-center gap-2`}
                   >
-                    <Image src={Mobile} alt="Lock icon" width={18} height={18} />
+                    <Image src={Mobile} alt="Mobile icon" width={18} height={18} />
                     Enable Two-Factor Authentication (2FA)
                   </button>
                 </div>
@@ -204,6 +251,84 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal Overlay */}
+      {modal.type && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-[#0E1A22] p-6 rounded-xl shadow-lg shadow-black/50 w-80 animate-fade-in">
+            {/* Deploy selection */}
+            {modal.type === "deploy" && (
+              <>
+                <h3 className="text-lg font-bold text-[#39FF14] mb-4">Select Honeypot Type</h3>
+                <div className="flex flex-col gap-3">
+                  {["ssh", "sql", "http"].map((t) => (
+                    <button
+                      key={t}
+                      className="bg-[#39FF14] text-black rounded-lg py-2 hover:bg-[#37ff1495] transition-colors"
+                      onClick={() => {
+                        deployHoneypot(t);
+                        setModal({ type: "", message: "", data: null });
+                      }}
+                    >
+                      {t.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Confirm remove */}
+            {modal.type === "confirm-remove" && (
+              <>
+                <h3 className="text-lg font-bold text-[#F80132] mb-4">{modal.message}</h3>
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700"
+                    onClick={() => setModal({ type: "", message: "", data: null })}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-lg bg-[#F80132] text-white hover:bg-red-600"
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const res = await fetch(`/api/docker?id=${modal.data}`, { method: "DELETE" });
+                        await res.json();
+                        fetchHoneypots();
+                        setModal({ type: "success", message: "Honeypot removed", data: null });
+                      } catch (err) {
+                        setModal({ type: "error", message: "Failed to remove honeypot", data: null });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Success/Error messages */}
+            {(modal.type === "success" || modal.type === "error") && (
+              <>
+                <p className={`text-center text-sm ${modal.type === "success" ? "text-[#39FF14]" : "text-[#F80132]"}`}>
+                  {modal.message}
+                </p>
+                <div className="mt-4 flex justify-center">
+                  <button
+                    className="px-4 py-2 rounded-lg bg-[#39FF14] text-black hover:bg-[#37ff1495]"
+                    onClick={() => setModal({ type: "", message: "", data: null })}
+                  >
+                    OK
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
